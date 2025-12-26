@@ -129,7 +129,10 @@ export default function App() {
 
       <div className="panel">
         <h3>Embedding</h3>
-        <p>Iframe: https://vc.valliams.com/embed?roomId={roomId}&token={joinData.token}&userId={userId}</p>
+        <p>
+          Iframe: https://vc.valliams.com/embed?roomId={roomId || "<roomId>"}&token=
+          {joinData?.token || "<token>"}&userId={userId}
+        </p>
         <p>React: &lt;VideoCall roomId token userId backendUrl /&gt;</p>
       </div>
     </div>

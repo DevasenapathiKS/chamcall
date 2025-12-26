@@ -20,7 +20,7 @@ cd frontend
 npm install
 npm run dev
 ```
-- Backend defaults: demo app (`appId=demo-app`, `appSecret=demo-secret`), `http://localhost:4000`.
+- Backend defaults: demo app (`appId=demo-app`, `appSecret=demo-secret`), `https://vc.valliams.com`.
 - Frontend dev server: `http://localhost:5173`.
 
 ## Core flows
