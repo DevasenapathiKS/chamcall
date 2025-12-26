@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import VideoCall from "./components/VideoCall.jsx";
 
 const defaultConfig = {
-  backendUrl: "http://localhost:4000"
+  backendUrl: "https://vc.valliams.com"
 };
 
 export default function App() {

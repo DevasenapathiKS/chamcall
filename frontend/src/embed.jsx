@@ -5,7 +5,7 @@ import "./styles.css";
 
 function EmbedApp() {
   const params = new URLSearchParams(window.location.search);
-  const [backendUrl, setBackendUrl] = useState(params.get("backendUrl") || "http://localhost:4000");
+  const [backendUrl, setBackendUrl] = useState(params.get("backendUrl") || "https://vc.valliams.com");
   const [roomId, setRoomId] = useState(params.get("roomId") || "");
   const [token, setToken] = useState(params.get("token") || "");
   const [userId, setUserId] = useState(params.get("userId") || "guest");
