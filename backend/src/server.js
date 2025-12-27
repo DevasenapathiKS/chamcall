@@ -6,11 +6,11 @@ import { logger } from "./utils/logger.js";
 
 const server = http.createServer(app);
 
-// Socket.IO CORS config
+// Socket.IO CORS config - allow all origins for development
 const socketCors = {
-  origin: config.cors.allowedOrigins.length ? config.cors.allowedOrigins : "*",
+  origin: "*",
   methods: ["GET", "POST"],
-  credentials: true
+  credentials: false
 };
 
 createSocketServer(server, socketCors);

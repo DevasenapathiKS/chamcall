@@ -270,8 +270,9 @@ export default function VideoCall({ roomId, userId, userName, token, signalingUr
       console.log("Token:", token ? token.substring(0, 20) + "..." : "NO TOKEN");
       
       const socket = io(socketUrl, {
-        transports: ["websocket"],
-        auth: { token }
+        transports: ["polling", "websocket"],
+        auth: { token },
+        upgrade: true
       });
       socketRef.current = socket;
 
