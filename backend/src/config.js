@@ -10,7 +10,8 @@ export const config = {
   turn: {
     staticSecret: process.env.TURN_STATIC_SECRET || "change-me",
     ttlSeconds: Number(process.env.TURN_TTL_SECONDS || 600),
-    urls: (process.env.TURN_URLS || "turn:turn.local:3478,stun:turn.local:3478")
+    // Default to Google's public STUN servers for local testing
+    urls: (process.env.TURN_URLS || "stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302")
       .split(",")
       .map((u) => u.trim())
       .filter(Boolean)

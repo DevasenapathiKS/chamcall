@@ -24,10 +24,17 @@ router.post("/:roomId/join", requireAppOrJwt, (req, res, next) => {
   addParticipant(roomId, { userId: user.id, name: user.name, role: user.role });
   const token = signRoomToken({ appId, roomId, user: { id: user.id, name: user.name, role: user.role } });
   const turn = generateTurnCredentials(appId);
+
+  // Socket.IO client expects HTTP/HTTPS URL (it handles ws upgrade internally)
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const baseProto = forwardedProto ? forwardedProto.split(",")[0] : req.protocol;
+  const host = req.get("host");
+
   res.json({
     roomId,
     token,
-    signalingUrl: `${req.protocol}://${req.get("host")}/ws`,
+    // Socket.IO client uses path "/ws"; return HTTP URL (not ws://)
+    signalingUrl: `${baseProto}://${host}`,
     iceServers: [
       ...turn.urls.map((u) => ({ urls: [u], username: turn.username, credential: turn.credential }))
     ],

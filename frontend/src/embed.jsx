@@ -25,7 +25,8 @@ function EmbedApp() {
         if (res.ok) {
           const data = await res.json();
           setIceServers(data.iceServers);
-          if (!signalingUrl) setSignalingUrl(`${backendUrl.replace("http", "ws")}/ws`);
+          // Socket.IO uses HTTP URL with path: "/ws" - no ws:// conversion needed
+          if (!signalingUrl) setSignalingUrl(backendUrl);
         }
       } catch (err) {
         setError(err.message);
@@ -53,7 +54,7 @@ function EmbedApp() {
         userName={userName}
         token={token}
         iceServers={iceServers}
-        signalingUrl={signalingUrl || `${backendUrl.replace("http", "ws")}/ws`}
+        signalingUrl={signalingUrl || backendUrl}
       />
     </div>
   );

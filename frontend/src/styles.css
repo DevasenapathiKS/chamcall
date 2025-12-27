@@ -1,60 +1,552 @@
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+/* ─────────────────────────────────────────────────────────────
+   ChamCall - Google Meet-like Video Calling Styles
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --bg-dark: #202124;
+  --bg-darker: #171717;
+  --bg-card: #303134;
+  --bg-hover: #3c4043;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --accent-blue: #8ab4f8;
+  --accent-green: #81c995;
+  --accent-red: #f28b82;
+  --border-color: #5f6368;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+* {
   margin: 0;
   padding: 0;
-  background: #0f172a;
-  color: #e2e8f0;
+  box-sizing: border-box;
 }
+
+body {
+  font-family: "Google Sans", "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   App Container
+   ───────────────────────────────────────────────────────────── */
 
 .app {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 24px;
-  max-width: 960px;
+  max-width: 1000px;
   margin: 0 auto;
+  padding: 24px;
 }
+
+.app h1 {
+  font-size: 28px;
+  font-weight: 400;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Panel (for app setup)
+   ───────────────────────────────────────────────────────────── */
 
 .panel {
-  background: #111827;
-  padding: 16px;
+  background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #1f2937;
+  padding: 20px;
+  margin-bottom: 16px;
 }
 
-label {
+.panel h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.panel label {
   display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
   margin-bottom: 6px;
+  margin-top: 12px;
 }
 
-input {
+.panel label:first-of-type {
+  margin-top: 0;
+}
+
+.panel input,
+.panel select {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #1f2937;
-  background: #0b1220;
-  color: #e2e8f0;
-  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
 }
 
-button {
-  background: #2563eb;
-  color: white;
+.panel input:focus,
+.panel select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.panel button {
+  padding: 10px 20px;
+  background: var(--accent-blue);
+  color: var(--bg-dark);
   border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.panel button:hover {
+  opacity: 0.9;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   VideoCall Component
+   ───────────────────────────────────────────────────────────── */
+
+.video-call {
+  min-height: 100vh;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Pre-join Screen
+   ───────────────────────────────────────────────────────────── */
+
+.prejoin-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-dark);
+}
+
+.prejoin-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.prejoin-card h2 {
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.prejoin-card .room-info {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.preview-section {
+  margin-bottom: 24px;
+}
+
+.video-preview {
+  background: var(--bg-darker);
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.video-preview video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror for self-view */
+}
+
+.video-preview .avatar-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-controls {
+  display: flex;
+  justify-content: center;
   gap: 12px;
 }
 
-video {
-  width: 100%;
-  background: black;
-  border-radius: 8px;
+.device-selection {
+  margin-bottom: 24px;
 }
 
+.device-row {
+  margin-bottom: 16px;
+}
+
+.device-row label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.device-row select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.device-row select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+.join-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent-blue);
+  color: var(--bg-dark);
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.join-btn:hover {
+  background: #aecbfa;
+}
+
+.join-btn:active {
+  transform: scale(0.98);
+}
+
+.prejoin-card .hint {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   In-call Screen
+   ───────────────────────────────────────────────────────────── */
+
+.incall-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-darker);
+}
+
+.call-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.call-header .room-name {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.call-header .call-status {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.call-header .connection-info {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+.error-banner {
+  background: var(--accent-red);
+  color: var(--bg-dark);
+  padding: 12px 20px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Video Grid
+   ───────────────────────────────────────────────────────────── */
+
+.video-grid {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  gap: 12px;
+}
+
+.video-tile {
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.video-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-tile.main-video {
+  flex: 1;
+  max-width: 900px;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-tile.main-video video {
+  width: 100%;
+  height: 100%;
+}
+
+.video-tile.pip-video {
+  position: absolute;
+  bottom: 32px;
+  right: 32px;
+  width: 200px;
+  height: 150px;
+  border: 2px solid var(--border-color);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-tile.pip-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror for self-view */
+}
+
+.video-tile.pip-video .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.video-tile.pip-video .avatar-placeholder.small {
+  min-height: auto;
+}
+
+.video-label {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Avatar Placeholder (when video is off)
+   ───────────────────────────────────────────────────────────── */
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-darker);
+}
+
+.avatar-placeholder.large {
+  min-height: 400px;
+}
+
+.avatar-placeholder.small {
+  min-height: 100%;
+}
+
+.avatar-placeholder p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5f6368, #3c4043);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.avatar.small {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Controls Bar
+   ───────────────────────────────────────────────────────────── */
+
+.controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.control-btn:hover {
+  background: #5f6368;
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn.off {
+  background: var(--accent-red);
+  color: white;
+}
+
+.control-btn.active {
+  background: var(--accent-blue);
+  color: var(--bg-dark);
+}
+
+.control-btn.large {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+}
+
+.control-btn.large span {
+  font-size: 10px;
+  margin-top: 2px;
+  display: none;
+}
+
+.control-btn.end-call {
+  background: var(--accent-red);
+  color: white;
+  transform: rotate(135deg);
+}
+
+.control-btn.end-call:hover {
+  background: #e57373;
+}
+
+/* Show labels on larger screens */
+@media (min-width: 768px) {
+  .control-btn.large {
+    width: auto;
+    height: auto;
+    padding: 12px 20px;
+    border-radius: 24px;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .control-btn.large span {
+    display: inline;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .control-btn.end-call {
+    transform: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsive adjustments
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .prejoin-card {
+    padding: 24px 16px;
+  }
+
+  .video-tile.pip-video {
+    width: 120px;
+    height: 90px;
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .call-header {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+  }
+
+  .call-header .connection-info {
+    display: none;
+  }
+
+  .controls-bar {
+    gap: 12px;
+  }
+}
