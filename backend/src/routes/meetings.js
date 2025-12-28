@@ -30,10 +30,10 @@ const router = Router();
  * - metadata (optional): Custom metadata for integrations
  * - integrations (optional): { calendarEventId, externalId, source }
  */
-router.post("/", requireAppAuth, async (req, res, next) => {
+router.post("/", optionalAuth, async (req, res, next) => {
   try {
-    const { appId } = req.appContext;
-    const createdBy = req.body.createdBy || req.token?.sub || "api";
+    const appId = req.appContext?.appId || "public";
+    const createdBy = req.body.createdBy || req.token?.sub || "anonymous";
     
     const meeting = await meetingService.createMeeting({
       appId,
