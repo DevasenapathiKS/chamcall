@@ -8,9 +8,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
 import roomRoutes from "./routes/rooms.js";
+import meetingRoutes from "./routes/meetings.js";
 import turnRoutes from "./routes/turn.js";
 import webhookRoutes from "./routes/webhooks.js";
 import { config } from "./config.js";
+import { isDBConnected } from "./db/connection.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -35,11 +37,23 @@ app.use(bodyParser.json());
 // Serve built frontend assets
 app.use(express.static(distPath));
 
-app.get("/health", (_req, res) => res.json({ ok: true }));
+// Health check with DB status
+app.get("/health", (_req, res) => res.json({ 
+  ok: true, 
+  database: isDBConnected() ? "connected" : "disconnected",
+  timestamp: new Date().toISOString()
+}));
+
+// API Routes
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/rooms", roomRoutes);
+app.use("/api/v1/rooms", roomRoutes);        // Legacy room routes
+app.use("/api/v1/meetings", meetingRoutes);  // New meeting routes
+app.use("/api/meetings", meetingRoutes);     // Short alias
 app.use("/api/v1/turn", turnRoutes);
 app.use("/api/v1/webhooks", webhookRoutes);
+
+// Meeting direct access route (e.g., /meet/abc-1234-xyz)
+app.get("/meet/:meetingId", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
 
 // Frontend entrypoints (embed and SPA)
 app.get("/embed", (_req, res) => res.sendFile(path.join(distPath, "embed.html")));

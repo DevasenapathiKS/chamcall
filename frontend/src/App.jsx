@@ -11,11 +11,13 @@ export default function App() {
   const [backendUrl, setBackendUrl] = useState(defaultConfig.backendUrl);
   const [appId, setAppId] = useState("demo-app");
   const [appSecret, setAppSecret] = useState("demo-secret");
-  const [roomId, setRoomId] = useState("");
+  const [meetingId, setMeetingId] = useState("");
   const [userId, setUserId] = useState("user-" + Math.random().toString(16).slice(2, 6));
   const [userName, setUserName] = useState("Guest");
   const [joinData, setJoinData] = useState(null);
   const [error, setError] = useState("");
+  const [mode, setMode] = useState("simple"); // simple or advanced
+  const [meetingTitle, setMeetingTitle] = useState("");
 
   useEffect(() => {
     async function fetchConfig() {
@@ -33,9 +35,79 @@ export default function App() {
       }
     }
     fetchConfig();
+    
+    // Check if we're on a direct meeting URL (/meet/abc-1234-xyz)
+    const path = window.location.pathname;
+    const meetMatch = path.match(/^\/meet\/([a-z]{3}-\d{4}-[a-z]{3})$/);
+    if (meetMatch) {
+      setMeetingId(meetMatch[1]);
+    }
   }, []);
 
-  async function createRoom() {
+  // Create a new meeting using the new Meetings API
+  async function createMeeting() {
+    setError("");
+    try {
+      const res = await fetch(`${backendUrl}/api/meetings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-App-Id": appId,
+          "X-App-Key": appSecret
+        },
+        body: JSON.stringify({ 
+          createdBy: userId,
+          title: meetingTitle || "Video Meeting"
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setMeetingId(data.meetingId);
+      // Auto-copy meeting link to clipboard
+      navigator.clipboard?.writeText(data.meetingUrl);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // Join meeting using the new Meetings API (no JWT required when disabled)
+  async function joinMeeting() {
+    setError("");
+    if (!meetingId) {
+      setError("Meeting ID required");
+      return;
+    }
+    
+    // Validate meeting ID format
+    if (!/^[a-z]{3}-\d{4}-[a-z]{3}$/.test(meetingId)) {
+      setError("Invalid meeting ID format (expected: abc-1234-xyz)");
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${backendUrl}/api/meetings/${meetingId}/join`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ userId, name: userName })
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      setJoinData(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // Legacy: Create room using old API
+  async function createRoomLegacy() {
     setError("");
     try {
       const res = await fetch(`${backendUrl}/api/v1/rooms`, {
@@ -49,20 +121,21 @@ export default function App() {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      setRoomId(data.roomId);
+      setMeetingId(data.roomId);
     } catch (err) {
       setError(err.message);
     }
   }
 
-  async function joinRoom() {
+  // Legacy: Join room using old API
+  async function joinRoomLegacy() {
     setError("");
-    if (!roomId) {
+    if (!meetingId) {
       setError("Room ID required");
       return;
     }
     try {
-      const res = await fetch(`${backendUrl}/api/v1/rooms/${roomId}/join`, {
+      const res = await fetch(`${backendUrl}/api/v1/rooms/${meetingId}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,62 +152,168 @@ export default function App() {
     }
   }
 
+  function leaveCall() {
+    setJoinData(null);
+    setMeetingId("");
+  }
+
+  if (joinData) {
+    return (
+      <div className="app">
+        <VideoCall
+          backendUrl={backendUrl}
+          roomId={meetingId}
+          userId={userId}
+          token={joinData.token}
+          iceServers={joinData.iceServers}
+          signalingUrl={joinData.signalingUrl}
+          userName={userName}
+          onLeave={leaveCall}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="app">
-      <h1>ChamCall</h1>
-      <div className="panel">
-        <h3>Config</h3>
-        {loadingConfig ? <p>Loading config...</p> : null}
-        <label>Backend URL</label>
-        <input value={backendUrl} onChange={(e) => setBackendUrl(e.target.value)} />
-        <label>App ID</label>
-        <input value={appId} onChange={(e) => setAppId(e.target.value)} />
-        <label>App Secret</label>
-        <input value={appSecret} onChange={(e) => setAppSecret(e.target.value)} />
+      <header className="app-header">
+        <h1>🎥 ChamCall</h1>
+        <p className="tagline">Self-hosted video meetings for teams</p>
+      </header>
+
+      <div className="mode-toggle">
+        <button 
+          className={mode === "simple" ? "active" : ""} 
+          onClick={() => setMode("simple")}
+        >
+          Simple Mode
+        </button>
+        <button 
+          className={mode === "advanced" ? "active" : ""} 
+          onClick={() => setMode("advanced")}
+        >
+          Advanced Mode
+        </button>
       </div>
 
-      <div className="panel">
-        <h3>Create / Join</h3>
-        <label>User ID</label>
-        <input value={userId} onChange={(e) => setUserId(e.target.value)} />
-        <label>Name</label>
-        <input value={userName} onChange={(e) => setUserName(e.target.value)} />
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={createRoom}>Create room</button>
-          <input
-            placeholder="roomId"
-            value={roomId}
-            onChange={(e) => setRoomId(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <button onClick={joinRoom}>Join room</button>
+      {mode === "simple" ? (
+        <div className="panel main-panel">
+          <h3>Start or Join a Meeting</h3>
+          
+          <div className="form-group">
+            <label>Your Name</label>
+            <input 
+              value={userName} 
+              onChange={(e) => setUserName(e.target.value)} 
+              placeholder="Enter your name"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Meeting Title (optional)</label>
+            <input 
+              value={meetingTitle} 
+              onChange={(e) => setMeetingTitle(e.target.value)} 
+              placeholder="e.g., Team Standup"
+            />
+          </div>
+
+          <button className="btn-primary btn-large" onClick={createMeeting}>
+            🚀 Create New Meeting
+          </button>
+
+          <div className="divider">
+            <span>or</span>
+          </div>
+
+          <div className="form-group">
+            <label>Meeting ID</label>
+            <input 
+              value={meetingId} 
+              onChange={(e) => setMeetingId(e.target.value.toLowerCase())} 
+              placeholder="abc-1234-xyz"
+            />
+          </div>
+
+          <button className="btn-secondary btn-large" onClick={joinMeeting}>
+            📞 Join Meeting
+          </button>
+
+          {error && <p className="error-message">{error}</p>}
+
+          {meetingId && (
+            <div className="meeting-link-box">
+              <p>Share this meeting link:</p>
+              <code>{backendUrl}/meet/{meetingId}</code>
+            </div>
+          )}
         </div>
-        {error ? <p style={{ color: "#f87171" }}>{error}</p> : null}
-      </div>
+      ) : (
+        <>
+          <div className="panel">
+            <h3>Configuration</h3>
+            {loadingConfig && <p>Loading config...</p>}
+            <div className="form-group">
+              <label>Backend URL</label>
+              <input value={backendUrl} onChange={(e) => setBackendUrl(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>App ID</label>
+              <input value={appId} onChange={(e) => setAppId(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>App Secret</label>
+              <input 
+                type="password"
+                value={appSecret} 
+                onChange={(e) => setAppSecret(e.target.value)} 
+              />
+            </div>
+          </div>
 
-      {joinData ? (
-        <div className="panel">
-          <h3>Call</h3>
-          <VideoCall
-            backendUrl={backendUrl}
-            roomId={roomId}
-            userId={userId}
-            token={joinData.token}
-            iceServers={joinData.iceServers}
-            signalingUrl={joinData.signalingUrl}
-            userName={userName}
-          />
-        </div>
-      ) : null}
+          <div className="panel">
+            <h3>Meeting (New API)</h3>
+            <div className="form-group">
+              <label>User ID</label>
+              <input value={userId} onChange={(e) => setUserId(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Name</label>
+              <input value={userName} onChange={(e) => setUserName(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Meeting Title</label>
+              <input value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)} />
+            </div>
+            <div className="button-row">
+              <button onClick={createMeeting}>Create Meeting</button>
+              <input
+                placeholder="abc-1234-xyz"
+                value={meetingId}
+                onChange={(e) => setMeetingId(e.target.value.toLowerCase())}
+              />
+              <button onClick={joinMeeting}>Join Meeting</button>
+            </div>
+            {error && <p className="error-message">{error}</p>}
+          </div>
 
-      <div className="panel">
-        <h3>Embedding</h3>
-        <p>
-          Iframe: https://vc.valliams.com/embed?roomId={roomId || "<roomId>"}&token=
-          {joinData?.token || "<token>"}&userId={userId}
-        </p>
-        <p>React: &lt;VideoCall roomId token userId backendUrl /&gt;</p>
-      </div>
+          <div className="panel">
+            <h3>Legacy Room (Old API)</h3>
+            <div className="button-row">
+              <button onClick={createRoomLegacy}>Create Room (Legacy)</button>
+              <button onClick={joinRoomLegacy}>Join Room (Legacy)</button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h3>API Reference</h3>
+            <p><strong>Create Meeting:</strong> POST /api/meetings</p>
+            <p><strong>Join Meeting:</strong> POST /api/meetings/:meetingId/join</p>
+            <p><strong>Get Status:</strong> GET /api/meetings/:meetingId/status</p>
+            <p><strong>Meeting URL:</strong> {backendUrl}/meet/{meetingId || "{meetingId}"}</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
