@@ -41,6 +41,7 @@ export default function App() {
     const meetMatch = path.match(/^\/meet\/([a-z]{3}-\d{4}-[a-z]{3})$/);
     if (meetMatch) {
       setMeetingId(meetMatch[1]);
+      joinMeeting();
     }
   }, []);
 
