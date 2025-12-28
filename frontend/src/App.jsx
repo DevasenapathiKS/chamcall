@@ -19,6 +19,8 @@ export default function App() {
   const [mode, setMode] = useState("simple"); // simple or advanced
   const [meetingTitle, setMeetingTitle] = useState("");
   const [autoJoinPending, setAutoJoinPending] = useState(false);
+  const [autoRecording, setAutoRecording] = useState(false);
+  const [userRole, setUserRole] = useState("participant"); // interviewer, candidate, participant
 
   useEffect(() => {
     async function fetchConfig() {
@@ -37,11 +39,33 @@ export default function App() {
     }
     fetchConfig();
     
-    // Check if we're on a direct meeting URL (/meet/abc-1234-xyz)
+    // Check if we're on a direct meeting URL (/meet/abc-1234-xyz?name=John&recording=true)
     const path = window.location.pathname;
     const meetMatch = path.match(/^\/meet\/([a-z]{3}-\d{4}-[a-z]{3})$/);
     if (meetMatch) {
       setMeetingId(meetMatch[1]);
+      
+      // Parse URL query parameters
+      const params = new URLSearchParams(window.location.search);
+      
+      // Get interviewer/participant name from URL
+      const nameFromUrl = params.get("name");
+      if (nameFromUrl) {
+        setUserName(decodeURIComponent(nameFromUrl));
+      }
+      
+      // Get recording preference from URL
+      const recordingFromUrl = params.get("recording");
+      if (recordingFromUrl === "true") {
+        setAutoRecording(true);
+      }
+      
+      // Get role from URL (interviewer/candidate)
+      const roleFromUrl = params.get("role");
+      if (roleFromUrl) {
+        setUserRole(roleFromUrl);
+      }
+      
       setAutoJoinPending(true);
     }
   }, []);
