@@ -18,6 +18,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState("simple"); // simple or advanced
   const [meetingTitle, setMeetingTitle] = useState("");
+  const [autoJoinPending, setAutoJoinPending] = useState(false);
 
   useEffect(() => {
     async function fetchConfig() {
@@ -41,9 +42,17 @@ export default function App() {
     const meetMatch = path.match(/^\/meet\/([a-z]{3}-\d{4}-[a-z]{3})$/);
     if (meetMatch) {
       setMeetingId(meetMatch[1]);
-      joinMeeting();
+      setAutoJoinPending(true);
     }
   }, []);
+
+  // Auto-join when coming from a direct meeting URL
+  useEffect(() => {
+    if (autoJoinPending && meetingId && !loadingConfig) {
+      setAutoJoinPending(false);
+      joinMeetingWithId(meetingId);
+    }
+  }, [autoJoinPending, meetingId, loadingConfig]);
 
   // Create a new meeting using the new Meetings API
   async function createMeeting() {
@@ -75,21 +84,23 @@ export default function App() {
   }
 
   // Join meeting using the new Meetings API (no JWT required when disabled)
-  async function joinMeeting() {
+  async function joinMeetingWithId(id) {
+    const targetId = id || meetingId;
+    
     setError("");
-    if (!meetingId) {
+    if (!targetId) {
       setError("Meeting ID required");
       return;
     }
     
     // Validate meeting ID format
-    if (!/^[a-z]{3}-\d{4}-[a-z]{3}$/.test(meetingId)) {
+    if (!/^[a-z]{3}-\d{4}-[a-z]{3}$/.test(targetId)) {
       setError("Invalid meeting ID format (expected: abc-1234-xyz)");
       return;
     }
     
     try {
-      const res = await fetch(`${backendUrl}/api/meetings/${meetingId}/join`, {
+      const res = await fetch(`${backendUrl}/api/meetings/${targetId}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -105,6 +116,11 @@ export default function App() {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  // Wrapper for button clicks (uses state)
+  function joinMeeting() {
+    joinMeetingWithId(meetingId);
   }
 
   // Legacy: Create room using old API
