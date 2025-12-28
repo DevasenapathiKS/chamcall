@@ -210,6 +210,7 @@ export default function App() {
           signalingUrl={joinData.signalingUrl}
           userName={userName}
           onLeave={leaveCall}
+          recording={autoRecording}
         />
       </div>
     );

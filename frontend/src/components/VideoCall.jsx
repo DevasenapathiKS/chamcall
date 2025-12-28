@@ -6,7 +6,7 @@ import { io } from "socket.io-client";
  * - Pre-join: preview camera/mic, select devices, toggle on/off
  * - In-call: video grid, controls bar, screen share, keyboard shortcuts
  */
-export default function VideoCall({ roomId, userId, userName, token, signalingUrl, iceServers, backendUrl, onLeave }) {
+export default function VideoCall({ roomId, userId, userName, token, signalingUrl, iceServers, backendUrl, onLeave, recording }) {
   // ═══════════════════════════════════════════════════════════════
   // REFS - Mutable values that don't trigger re-renders
   // ═══════════════════════════════════════════════════════════════
@@ -18,7 +18,7 @@ export default function VideoCall({ roomId, userId, userName, token, signalingUr
   const screenTrackRef = useRef(null);
   const iceCandidatesQueue = useRef([]);
   const isUnmountedRef = useRef(false);
-  
+
   // Recording refs
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
@@ -31,25 +31,25 @@ export default function VideoCall({ roomId, userId, userName, token, signalingUr
   const [phase, setPhase] = useState("prejoin");
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
-  
+
   // Media state
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  
+
   // Connection state
   const [peerConnected, setPeerConnected] = useState(false);
   const [peerName, setPeerName] = useState("");
   const [connectionState, setConnectionState] = useState("");
   const [iceState, setIceState] = useState("");
-  
+
   // Remote state
   const [remoteAudio, setRemoteAudio] = useState(true);
   const [remoteVideo, setRemoteVideo] = useState(true);
   const [remoteSharing, setRemoteSharing] = useState(false);
-  
+
   // Devices
   const [devices, setDevices] = useState({ audio: [], video: [] });
   const [selectedAudioId, setSelectedAudioId] = useState("");
@@ -59,13 +59,13 @@ export default function VideoCall({ roomId, userId, userName, token, signalingUr
   // MEMOIZED VALUES
   // ═══════════════════════════════════════════════════════════════
   const socketUrl = useMemo(() => backendUrl || signalingUrl, [backendUrl, signalingUrl]);
-  
-  const authPayload = useMemo(() => 
+
+  const authPayload = useMemo(() =>
     token ? { token } : { meetingId: roomId, userId, name: userName },
     [token, roomId, userId, userName]
   );
 
-  const defaultIceServers = useMemo(() => 
+  const defaultIceServers = useMemo(() =>
     iceServers || [{ urls: "stun:stun.l.google.com:19302" }],
     [iceServers]
   );
@@ -148,11 +148,11 @@ export default function VideoCall({ roomId, userId, userName, token, signalingUr
       }
 
       localStreamRef.current = stream;
-      
+
       if (localVideoRef.current && videoEnabled) {
         localVideoRef.current.srcObject = stream;
       }
-      
+
       setError("");
     } catch (err) {
       console.error("Preview error:", err);
@@ -181,11 +181,11 @@ export default function VideoCall({ roomId, userId, userName, token, signalingUr
   // ═══════════════════════════════════════════════════════════════
   const toggleVideo = useCallback(() => {
     const newState = !videoEnabled;
-    
+
     // Update UI immediately for instant feedback
     setVideoEnabled(newState);
     socketRef.current?.emit("user-media-updated", { audio: audioEnabled, video: newState });
-console.log("toggleVideo", newState);
+    console.log("toggleVideo", newState);
     if (!newState) {
       // TURNING OFF - stop camera (fast operation)
       const stream = localStreamRef.current;
@@ -196,10 +196,10 @@ console.log("toggleVideo", newState);
         });
       }
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
-      
+
       // Update peer connection in background
       const videoSender = pcRef.current?.getSenders().find(s => s.track?.kind === "video");
-      if (videoSender) videoSender.replaceTrack(null).catch(() => {});
+      if (videoSender) videoSender.replaceTrack(null).catch(() => { });
       console.log("toggleVideo", newState);
     } else {
       // TURNING ON - acquire camera in background (async, non-blocking)
@@ -352,7 +352,7 @@ console.log("toggleVideo", newState);
 
       socket.on("user-joined", async ({ userId: peerId, name }) => {
         if (peerId === userId || isUnmountedRef.current) return;
-        
+
         setPeerName(name || "Guest");
         emitToParent("user.joined", { roomId, userId: peerId });
 
@@ -467,7 +467,7 @@ console.log("toggleVideo", newState);
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 
     iceCandidatesQueue.current = [];
-    
+
     setPhase("prejoin");
     setStatus("ended");
     setPeerConnected(false);
@@ -475,7 +475,7 @@ console.log("toggleVideo", newState);
     setError("");
     setVideoEnabled(true);
     setAudioEnabled(true);
-    
+
     emitToParent("call.ended", { roomId, userId });
     onLeave?.();
   }, [stopAllTracks, roomId, userId, emitToParent, onLeave]);
@@ -488,11 +488,11 @@ console.log("toggleVideo", newState);
       // Stop sharing
       const videoTrack = localStreamRef.current?.getVideoTracks()[0];
       const sender = pcRef.current?.getSenders().find(s => s.track?.kind === "video");
-      
+
       if (sender && videoTrack) {
         await sender.replaceTrack(videoTrack);
       }
-      
+
       screenTrackRef.current?.stop();
       screenTrackRef.current = null;
       setIsSharing(false);
@@ -524,7 +524,7 @@ console.log("toggleVideo", newState);
   // ═══════════════════════════════════════════════════════════════
   // RECORDING
   // ═══════════════════════════════════════════════════════════════
-  
+
   const startRecording = useCallback(() => {
     try {
       // Create a canvas to combine local and remote video
@@ -539,7 +539,7 @@ console.log("toggleVideo", newState);
       const localAudio = localStreamRef.current?.getAudioTracks()[0];
       const remoteStream = remoteVideoRef.current?.srcObject;
       const remoteAudioTrack = remoteStream?.getAudioTracks()[0];
-      
+
       if (localAudio) audioTracks.push(localAudio);
       if (remoteAudioTrack) audioTracks.push(remoteAudioTrack);
 
@@ -548,7 +548,7 @@ console.log("toggleVideo", newState);
       if (audioTracks.length > 0) {
         const audioContext = new AudioContext();
         audioDestination = audioContext.createMediaStreamDestination();
-        
+
         audioTracks.forEach(track => {
           const source = audioContext.createMediaStreamSource(new MediaStream([track]));
           source.connect(audioDestination);
@@ -559,7 +559,7 @@ console.log("toggleVideo", newState);
       let animationId;
       const drawFrame = () => {
         if (!recordingCanvasRef.current) return;
-        
+
         ctx.fillStyle = "#1a1a1a";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -576,12 +576,12 @@ console.log("toggleVideo", newState);
           const pipHeight = 180;
           const pipX = canvas.width - pipWidth - 20;
           const pipY = canvas.height - pipHeight - 20;
-          
+
           // Draw border
           ctx.strokeStyle = "#4285f4";
           ctx.lineWidth = 3;
           ctx.strokeRect(pipX - 2, pipY - 2, pipWidth + 4, pipHeight + 4);
-          
+
           // Draw video
           ctx.drawImage(localVideo, pipX, pipY, pipWidth, pipHeight);
         }
@@ -602,11 +602,11 @@ console.log("toggleVideo", newState);
       // Create combined stream from canvas + audio
       const canvasStream = canvas.captureStream(30); // 30 FPS
       const combinedTracks = [...canvasStream.getVideoTracks()];
-      
+
       if (audioDestination) {
         combinedTracks.push(...audioDestination.stream.getAudioTracks());
       }
-      
+
       const combinedStream = new MediaStream(combinedTracks);
       recordingStreamRef.current = combinedStream;
 
@@ -614,8 +614,8 @@ console.log("toggleVideo", newState);
       const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
         ? "video/webm;codecs=vp9"
         : MediaRecorder.isTypeSupported("video/webm")
-        ? "video/webm"
-        : "video/mp4";
+          ? "video/webm"
+          : "video/mp4";
 
       const mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType,
@@ -691,7 +691,7 @@ console.log("toggleVideo", newState);
   // ═══════════════════════════════════════════════════════════════
   // EFFECTS
   // ═══════════════════════════════════════════════════════════════
-  
+
   // Initialize on mount
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -723,11 +723,11 @@ console.log("toggleVideo", newState);
   // Recording duration timer
   useEffect(() => {
     if (!isRecording) return;
-    
+
     const interval = setInterval(() => {
       setRecordingDuration(d => d + 1);
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [isRecording]);
 
@@ -737,7 +737,7 @@ console.log("toggleVideo", newState);
 
     const handleKeyDown = (e) => {
       if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
-      
+
       const key = e.key.toLowerCase();
       if (key === "m") { e.preventDefault(); toggleAudio(); }
       if (key === "v") { e.preventDefault(); toggleVideo(); }
@@ -931,14 +931,15 @@ console.log("toggleVideo", newState);
           <span>{isSharing ? "Stop share" : "Share"}</span>
         </button>
 
-        <button
-          className={`control-btn large ${isRecording ? "recording" : ""}`}
-          onClick={toggleRecording}
-          title="Record call (R)"
-        >
-          {isRecording ? "⏹️" : "⏺️"}
-          <span>{isRecording ? `Stop (${formatDuration(recordingDuration)})` : "Record"}</span>
-        </button>
+        {recording && (
+          <button
+            className={`control-btn large ${isRecording ? "recording" : ""}`}
+            onClick={toggleRecording}
+            title="Record call (R)"
+          >
+            {isRecording ? "⏹️" : "⏺️"}
+            <span>{isRecording ? `Stop (${formatDuration(recordingDuration)})` : "Record"}</span>
+          </button> )}
 
         <button className="control-btn large end-call" onClick={leaveCall} title="Leave call">
           📞
